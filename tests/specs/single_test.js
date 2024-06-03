@@ -1,15 +1,38 @@
 const assert = require('assert');
 
-describe('Google Search Function', () => {
-  it('can find search results', async () => {
-    await browser.url('https://www.google.co.in/');
-    const prompt = await $('[id="L2AGLb"]'); // consent popup is coming for other location which needs to be accepted to proceed
-    if(prompt.elementId)
-      await prompt.click();
-    const input = await $('[name="q"]');
-    await input.setValue('test123');
-    const title = await browser.getTitle();
-    await browser.pause(10000);
-    assert.equal(title, 'Google');
+const fs = require('fs');
+
+describe('File Download Test', () => {
+  it('should download the file and verify its existence and content', async () => {
+      // Navigate to the URL
+      await browser.url('https://file-examples.com/wp-content/storage/2017/02/file_example_XLSX_10.xlsx');
+      
+      // Wait for the file to be available (adjust the sleep time if necessary)
+      await browser.pause(4000);
+
+      // Check if the file exists
+      const fileExists = await browser.execute('lambda-file-exists=file_example_XLSX_10.xlsx');
+      console.assert(fileExists === true, 'File does not exist');
+
+      // Retrieve file stats
+      const fileStats = await browser.execute('lambda-file-stats=file_example_XLSX_10.xlsx');
+      console.log(fileStats);
+
+      // Download file content
+      const base64EncodedFile = await browser.execute('lambda-file-content=file_example_XLSX_10.xlsx');
+      console.log(base64EncodedFile);
+
+      // Decode base64 and write to file
+      const data = Buffer.from(base64EncodedFile, 'base64');
+      fs.writeFileSync('file_example_XLSX_10.xlsx', data);
   });
+
+    afterEach(async function () {
+        if (this.currentTest.state === 'passed') {
+            await browser.execute('lambda-status=passed');
+        } else {
+            await browser.execute('lambda-status=failed');
+        }
+        await browser.deleteSession();
+    });
 });
